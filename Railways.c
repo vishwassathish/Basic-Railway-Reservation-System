@@ -8,20 +8,21 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<malloc.h>
+#include<string.h>
 #define size 5
-
+# define MAX_SIZE 20
 
 typedef struct NODE
 {
 	int reg_no;
 	int age;
-	char name[20];
+	char name[MAX_SIZE];
 	struct NODE *next;
 } node;
 
 node* deq();
 void create();
-int reserve(node*);
+int reserve();
 int cancel(int);
 void enq(node*);
 void display();
@@ -33,60 +34,89 @@ node *rear;
 int count=0;
 int num=0;
 
-void create( )
+void create()
 {
-	node *new;
-	new=(node *)malloc(sizeof(node));
-	new->reg_no=1;
+	start=(node *)malloc(sizeof(node));
+	start->reg_no = 1;
+
 	printf("Name: ");
-	scanf("%s", new->name);
+	scanf("%s",start->name);
 	printf("Age : ");
-	scanf("%d", &new->age);
-	start=new;
-	new->next=NULL;
+	scanf("%d", &start->age);
+	
+	start->next=NULL;
 	num++;
 	
 }
 
-int reserve(node *start)
+int reserve()
 {
 	
-	if(start==NULL)
+	if(start == NULL)
 	{
-   		 create(start);
-		 return 1;
-	}
-	else 
-	{
-	
-	node *temp, *new_node;
-	temp=start;
-	while(temp->next!=NULL)
-	{ 
-	  temp=temp->next;
-	}
-	
-	new_node=(node *)malloc(sizeof(node));
-	
-	printf("Name: ");
-	scanf("%s", new_node->name);
-	printf("Age : ");
-	scanf("%d", &new_node->age);
-	new_node->next=NULL;
-	if(num<=size)
-	{
-		num++;
-		new_node->reg_no=num;
-		temp->next=new_node;
-		
+		create();
 		return 1;
 	}
-	else
+
+	else 
 	{
-		enq(new_node);
-		return 0;
+		node *temp, *new_node, *prev;
+
+		new_node=(node *)malloc(sizeof(node));
+		
+		printf("Name: ");
+		scanf("%s",new_node->name);
+		printf("Age : ");
+		scanf("%d", &(new_node->age));
+
+		new_node->next=NULL;
+		
+		temp=start;
+		int i=1;
+		if(temp->reg_no == 0)
+		{
+			temp->reg_no = 1;
+			strcpy(temp->name,new_node->name);
+			temp->age = new_node->age;
+			num++;
+			return 1;
+		}
+		while(temp->next != NULL)
+		{
+			if(temp->reg_no != i++)
+				break;
+
+			prev = temp;
+			temp=temp->next;
+		}	
+
+		if(num<size)
+		{
+			num++;
+			i++;
+			if(temp->reg_no == (prev->reg_no+1) || i == 2) // If all gaps were filled
+			{
+				new_node->reg_no = i;
+				temp->next = new_node;
+				return i;
+			}
+			else	// Filling the gaps
+			{
+				new_node->next = temp;
+				prev->next = new_node;
+				new_node->reg_no = (temp->reg_no) - 1;
+				printf("reg = %d\n",new_node->reg_no);
+				return new_node->reg_no;
+			}
+			
+		}
+
+		else
+		{
+			enq(new_node);
+			return 0;
+		}
 	}
-}
 }
 
 
@@ -97,33 +127,58 @@ int cancel(int reg)
 	preptr=NULL;
 	if(start==NULL)
 	return -1;
-	if(ptr->next==NULL && ptr->reg_no==reg)
-		{
+	
+	if(ptr->next==NULL && ptr->reg_no==reg)	// If only 1 person in reservation
+	{
 		start=NULL;
 		num--;
 		free(ptr);
 		return 1;
+	}
 		
-		}
-		
-	else{	
-	while(ptr->reg_no!=reg && ptr->next!=NULL)
+	else
+	{	if(reg == 1)
 		{
-			preptr=ptr;
-			ptr=ptr->next;
-		}
-		if(ptr==NULL && ptr->reg_no!=reg)
-			return -1;
+			ptr->reg_no = 0;
+			new=deq(reg);
+			if(new != NULL)
+			{
+				ptr->reg_no = 1;
+				strcpy(ptr->name,new->name);
+				ptr->age = new->age;
+				num++;
+				return 1;
+			}
+		}	
+
 		else
-			preptr->next=ptr->next;
-		free(ptr);
-		new=deq();
-		while(preptr->next!=NULL)
-			preptr=preptr->next;
-		preptr->next=new;
-		num--;
-		return 1;
-	
+		{
+			while(ptr->reg_no != reg && ptr->next!=NULL)
+			{
+				preptr=ptr;
+				ptr=ptr->next;
+			}
+
+			if(ptr->next == NULL && ptr->reg_no != reg)
+				return -1;
+			else
+				preptr->next = ptr->next;
+
+			free(ptr);
+			new=deq(reg);
+			num--;
+			if(new != NULL)
+			{
+				node *waiting = start;
+				while(waiting->reg_no != (new->reg_no - 1))
+					waiting = waiting->next;
+
+				new->next = waiting->next;
+				waiting->next = new;
+				num++;
+			}
+			return 1;
+		}
 	}
 }
 
@@ -146,42 +201,45 @@ void enq(node *new_node)
 	count++;
 }
 
-node* deq()
+node* deq(int reg)
 {
 	node *front1;
-	front1=front;
+	front1 = front;
 	if(front==NULL)
 		return NULL;
 	else
 	{
 	    count-- ;
-		if(front->next!=NULL)
+		if(front->next != NULL)
 		{
 			front=front->next;
 			front1->next=NULL;
+			front1->reg_no = reg;
 			return front1;
 		}
 		else
 		{
 			front=NULL;
 			rear=NULL;
-			
+			front1->reg_no = reg;
 			return front1;
 		}
-	}	
-			
-	
+	}		
 }
 
 
 void display()
 {
 	node *temp;
-	temp=start;
+	temp = start;
 	while(temp!=NULL)
 	{
-		printf("\nRegistration Number: %d\n", temp->reg_no);
-		printf("Name : %s\n\n", temp->name);
+		if(temp->reg_no != 0)
+		{
+			printf("\nRegistration Number: %d\n", temp->reg_no);
+			printf("Name : %s\n", temp->name);
+			printf("Age : %d\n\n",temp->age);
+		}
 		temp=temp->next;
     }
     
@@ -191,6 +249,7 @@ int main()
 {
 	int choice, status=0,canc=0, reg=0;
 	start=NULL;
+
 	rear=NULL;
 	front=NULL;
 	
@@ -204,25 +263,25 @@ int main()
 	scanf("%d", &choice); 
 	switch(choice)
 	{	
-		case 1 :  status=reserve(start);
+		case 1 :  status = reserve();
 	              if(status==0)
 	                printf("\nBooking Full!! \nYou are added to waiting list. Waiting list number %d", count);
 	              else
-	                printf(" \nBooking Successful!!! Enjoy your journey! Your Reg No is %d\n\n", num);
+	                printf("\nBooking Successful!!! Enjoy your journey! Your Reg No. is %d\n", status);
 	                
 	              break;
 	        
-	    case 2:   printf(" \n Give the Registration number to be cancelled\n");
-	              scanf(" %d", &reg);
+	    case 2:   printf("\nGive the Registration number to be cancelled : ");
+	              scanf("%d", &reg);
 	              if(reg>num)
-	              printf("Invalid!!");
+	              	printf("Registration number invalid !!");
 	              else
-	              {
-	              canc=cancel(reg);
-	              if(canc==-1)
-	              	printf("\nRegistration number invalid!!\n");
-	              else
-	              	printf("\nRegistration cancelled successfully\n");
+	              	{
+	              		canc=cancel(reg);
+	              		if(canc==-1)
+	              			printf("Registration number invalid !!");
+	              		else
+	              			printf("Registration cancelled successfully");
 	              	}
 	              break;
 	              
@@ -230,13 +289,11 @@ int main()
 	    break;
 	    case 4: exit(0);   
 	    break;
-	    default: printf("\nWrong choice!\n");       
-	              
-	                 
-		          
+	    default: printf("\nWrong choice!\n");       		          
 	
 	}
 	
 }
 
 }
+
